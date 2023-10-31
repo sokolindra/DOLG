@@ -16,13 +16,13 @@ public class Calculator {
                 continue;
             }
 
-            input = evaluateInBetweenBars(input); // Вычислить значения внутри "| |"
+            input = evaluateInBetweenBars(input);
 
             try {
                 double result = evaluateExpression(input);
                 System.out.println("Результат: " + result);
 
-                // Сохраняем выражение и результат в историю
+
                 saveToHistory(input, result);
             } catch (ArithmeticException e) {
                 System.out.println("Ошибка: " + e.getMessage());
@@ -80,7 +80,7 @@ public class Calculator {
                     String op = operators.pop();
                     values.push(applyOperator(op, a, b));
                 }
-                operators.pop(); // Remove the '('
+                operators.pop();
             }
         }
 
@@ -100,7 +100,7 @@ public class Calculator {
 
     private static double evaluateModulus(String input) {
         double result = evaluateExpression(input);
-        return Math.abs(result); // Вычислить модуль от результата
+        return Math.abs(result);
     }
 
     private static boolean isOperator(String token) {
@@ -144,8 +144,7 @@ public class Calculator {
                 throw new IllegalArgumentException("Недействительный оператор: " + operator);
         }
     }
-
-    // Метод для сохранения выражения и результата в файле
+    
     private static void saveToHistory(String expression, double result) {
         try (FileWriter writer = new FileWriter("history.txt", true)) {
             writer.write(expression + " = " + result + System.lineSeparator());
@@ -153,8 +152,7 @@ public class Calculator {
             System.out.println("Ошибка сохранения в истории");
         }
     }
-
-    // Метод для вывода истории на экран
+    
     private static void displayHistory() {
         try (BufferedReader reader = new BufferedReader(new FileReader("history.txt"))) {
             String line;
