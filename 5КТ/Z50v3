@@ -1,0 +1,168 @@
+import java.io.*;
+import java.util.*;
+
+public class Calculator {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.print("Введите выражение (или 'Пока' для выхода, 'История' для вывода истории): ");
+            String input = scanner.nextLine().trim();
+
+            if (input.equalsIgnoreCase("Пока")) {
+                break;
+            } else if (input.equalsIgnoreCase("История")) {
+                displayHistory();
+                continue;
+            }
+
+            input = evaluateInBetweenBars(input); // Вычислить значения внутри "| |"
+
+            try {
+                double result = evaluateExpression(input);
+                System.out.println("Результат: " + result);
+
+                // Сохраняем выражение и результат в историю
+                saveToHistory(input, result);
+            } catch (ArithmeticException e) {
+                System.out.println("Ошибка: " + e.getMessage());
+            }
+        }
+    }
+
+    private static String evaluateInBetweenBars(String input) {
+        while (input.contains("|")) {
+            int openIndex = input.indexOf("|");
+            int closeIndex = input.indexOf("|", openIndex + 1);
+
+            if (openIndex != -1 && closeIndex != -1) {
+                String insideBars = input.substring(openIndex + 1, closeIndex);
+                double resultInsideBars = evaluateModulus(insideBars);
+                String newInput = input.substring(0, openIndex) + resultInsideBars + input.substring(closeIndex + 1);
+                input = newInput;
+            } else {
+                throw new IllegalArgumentException("Неверное использование символов '|'");
+            }
+        }
+
+        return input;
+    }
+
+    private static double evaluateExpression(String input) {
+        String[] tokens = input.split(" ");
+        Stack<Double> values = new Stack<>();
+        Stack<String> operators = new Stack<>();
+
+        for (String token : tokens) {
+            if (token.isEmpty()) {
+                continue;
+            }
+
+            char firstChar = token.charAt(0);
+            if (Character.isDigit(firstChar) || (token.length() > 1 && firstChar == '-' && Character.isDigit(token.charAt(1)))) {
+                values.push(Double.parseDouble(token));
+            } else if (token.equals("^")) {
+                operators.push(token);
+            } else if (isOperator(token)) {
+                while (!operators.isEmpty() && hasHigherPrecedence(token, operators.peek())) {
+                    double b = values.pop();
+                    double a = values.pop();
+                    String op = operators.pop();
+                    values.push(applyOperator(op, a, b));
+                }
+                operators.push(token);
+            } else if (token.equals("(")) {
+                operators.push(token);
+            } else if (token.equals(")")) {
+                while (!operators.isEmpty() && !operators.peek().equals("(")) {
+                    double b = values.pop();
+                    double a = values.pop();
+                    String op = operators.pop();
+                    values.push(applyOperator(op, a, b));
+                }
+                operators.pop(); // Remove the '('
+            }
+        }
+
+        while (!operators.isEmpty()) {
+            double b = values.pop();
+            double a = values.pop();
+            String op = operators.pop();
+            values.push(applyOperator(op, a, b));
+        }
+
+        if (values.size() == 1) {
+            return values.peek();
+        } else {
+            throw new ArithmeticException("Ошибка вычисления");
+        }
+    }
+
+    private static double evaluateModulus(String input) {
+        double result = evaluateExpression(input);
+        return Math.abs(result); // Вычислить модуль от результата
+    }
+
+    private static boolean isOperator(String token) {
+        return token.equals("+") || token.equals("-") || token.equals("*") || token.equals("/") || token.equals("%") || token.equals("//") || token.equals("^");
+    }
+
+    private static boolean hasHigherPrecedence(String op1, String op2) {
+        return (op1.equals("^")) ||
+                ((op1.equals("*") || op1.equals("/") || op1.equals("%") || op1.equals("//")) && (op2.equals("+") || op2.equals("-")));
+    }
+
+    private static double applyOperator(String operator, double a, double b) {
+        switch (operator) {
+            case "+":
+                return a + b;
+            case "-":
+                return a - b;
+            case "*":
+                return a * b;
+            case "/":
+                if (b != 0) {
+                    return a / b;
+                } else {
+                    throw new ArithmeticException("Деление на ноль");
+                }
+            case "%":
+                if (b != 0) {
+                    return a % b;
+                } else {
+                    throw new ArithmeticException("Остаток от деления на ноль");
+                }
+            case "//":
+                if (b != 0) {
+                    return (int) (a / b);
+                } else {
+                    throw new ArithmeticException("Деление без остатка на ноль");
+                }
+            case "^":
+                return Math.pow(a, b);
+            default:
+                throw new IllegalArgumentException("Недействительный оператор: " + operator);
+        }
+    }
+
+    // Метод для сохранения выражения и результата в файле
+    private static void saveToHistory(String expression, double result) {
+        try (FileWriter writer = new FileWriter("history.txt", true)) {
+            writer.write(expression + " = " + result + System.lineSeparator());
+        } catch (IOException e) {
+            System.out.println("Ошибка сохранения в истории");
+        }
+    }
+
+    // Метод для вывода истории на экран
+    private static void displayHistory() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("history.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            System.out.println("Ошибка чтения истории");
+        }
+    }
+}
